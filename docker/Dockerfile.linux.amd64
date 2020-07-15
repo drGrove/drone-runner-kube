@@ -1,6 +1,13 @@
 FROM alpine:3.6 as alpine
 RUN apk add -U --no-cache ca-certificates
 
+FROM golang:alpine@sha256:66c62963dbf2cb7c77b20b34c91b4abe2e66cac708df941a7d6f3bbd8e1ee921 as builder
+WORKDIR /go/src/app
+COPY . .
+ENV GOPATH ""
+ENV CGO_ENABLED 0
+RUN GOOS=linux GOARCH=amd64 go build -o release/linux/amd64/drone-runner-kube
+
 FROM alpine:3.6
 EXPOSE 3000
 
@@ -9,6 +16,5 @@ ENV DRONE_PLATFORM_OS linux
 ENV DRONE_PLATFORM_ARCH amd64
 
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
-ADD release/linux/amd64/drone-runner-kube /bin/
+COPY --from=builder /go/src/app/release/linux/amd64/drone-runner-kube /bin/
 ENTRYPOINT ["/bin/drone-runner-kube"]
